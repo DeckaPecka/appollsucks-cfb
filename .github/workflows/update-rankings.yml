@@ -1,6 +1,10 @@
 name: Update CFB Rankings
 
 on:
+  push:
+    paths:
+      - "scripts/**"
+      - ".github/workflows/**"
   workflow_dispatch:
   schedule:
     - cron: "0 10 * * 2,4,6"
