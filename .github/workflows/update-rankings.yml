@@ -26,10 +26,10 @@ jobs:
         env:
           CFBD_API_KEY: ${{ secrets.CFBD_API_KEY }}
         run: python scripts/build_rankings.py
-      - name: Commit updated rankings
+      - name: Commit updated rankings and logos
         run: |
           git config user.name "AP Poll Sucks Bot"
           git config user.email "actions@users.noreply.github.com"
-          git add data/rankings.json
-          git diff --cached --quiet || git commit -m "Update 2026 CFB rankings"
+          git add data/rankings.json data/team_logos.json
+          git diff --cached --quiet || git commit -m "Update 2026 rankings and team logos"
           git push
