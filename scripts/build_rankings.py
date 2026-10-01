@@ -16,12 +16,19 @@ def get(path, params):
     with urllib.request.urlopen(req, timeout=30) as r:
         return json.load(r)
 
-# Pull the complete FBS record set in one request.
 records = get("/records", {"year": YEAR})
 teams = [r for r in records if str(r.get("classification", "")).lower() == "fbs"]
 
-# Pull completed FBS games week-by-week. This stays well inside the free monthly
-# quota when the workflow is run a few times per week.
+# Keep team logos local to the site. CFBD returns current team logo URLs,
+# and GitHub Pages serves the generated map without a browser-side API call.
+team_details = get("/teams", {"year": YEAR})
+logo_map = {}
+for team in team_details:
+    name = team.get("school") or team.get("team")
+    logos = team.get("logos") or []
+    if name and logos:
+        logo_map[name] = logos[0]
+
 games = []
 for week in range(1, 17):
     try:
@@ -48,10 +55,6 @@ for g in games:
     elif ap > hp:
         stats[away]["wins"] += 1; stats[home]["losses"] += 1
 
-record_map = {r["team"]: r for r in teams}
-
-# Initial transparent score. We will replace/tune these weights after we validate
-# the live data feed and agree on the final AP Poll Sucks formula.
 rows = []
 for r in teams:
     name = r["team"]
@@ -87,4 +90,7 @@ os.makedirs("data", exist_ok=True)
 with open("data/rankings.json", "w", encoding="utf-8") as f:
     json.dump(output, f, indent=2)
 
-print(f"Generated {len(rows)} FBS rankings.")
+with open("data/team_logos.json", "w", encoding="utf-8") as f:
+    json.dump(logo_map, f, indent=2)
+
+print(f"Generated {len(rows)} FBS rankings and {len(logo_map)} team logos.")
