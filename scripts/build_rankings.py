@@ -22,11 +22,12 @@ teams = [r for r in records if str(r.get("classification", "")).lower() == "fbs"
 # Keep team logos local to the site. CFBD returns current team logo URLs,
 # and GitHub Pages serves the generated map without a browser-side API call.
 team_details = get("/teams", {"year": YEAR})
+fbs_names = {r["team"] for r in teams}
 logo_map = {}
 for team in team_details:
     name = team.get("school") or team.get("team")
     logos = team.get("logos") or []
-    if name and logos:
+    if name in fbs_names and logos:
         logo_map[name] = logos[0]
 
 games = []
