@@ -1,7 +1,5 @@
 const logoAliases = {
   "Miami (OH)": "Miami (OH)",
-  "Hawai'i": "Hawaii",
-  "San José State": "San Jose State",
   "UL Monroe": "UL Monroe"
 };
 
