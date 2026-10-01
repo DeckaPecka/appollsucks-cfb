@@ -1,8 +1,8 @@
 const logoAliases = {
   "Miami (OH)": "Miami (OH)",
   "UL Monroe": "UL Monroe",
-  "San José State": "https://a.espncdn.com/i/teamlogos/ncaa/500/23.png",
-  "Hawai'i": "https://a.espncdn.com/i/teamlogos/ncaa/500/62.png"
+  "San José State": "https://commons.wikimedia.org/wiki/Special:Redirect/file/San%20Jose%20State%20interlocking%20logo.svg",
+  "Hawai'i": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Hawaii%20Warriors%20logo.svg"
 };
 
 function normalize(name) {
@@ -35,7 +35,6 @@ async function loadTeamLogos() {
       const originalName = cell.textContent.trim();
       const alias = logoAliases[originalName];
 
-      // Explicit logo URL overrides the CFBD logo map.
       const logoUrl = alias && alias.startsWith("http")
         ? alias
         : logoMap[alias || originalName] || normalizedLogoMap[normalize(alias || originalName)];
@@ -45,12 +44,16 @@ async function loadTeamLogos() {
       const img = document.createElement("img");
       img.className = "team-logo";
       img.src = logoUrl;
-      img.alt = "";
+      img.alt = originalName + " logo";
       img.width = 32;
       img.height = 32;
       img.loading = "lazy";
 
-      img.onerror = () => img.remove();
+      img.onerror = () => {
+        console.warn("Logo failed:", originalName, logoUrl);
+        img.remove();
+      };
+
       cell.prepend(img);
       cell.classList.add("has-logo");
     });
