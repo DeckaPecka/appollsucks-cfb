@@ -2,7 +2,7 @@ const logoAliases = {
   "Miami (OH)": "Miami (OH)",
   "UL Monroe": "UL Monroe",
   "San Jose State": "https://commons.wikimedia.org/wiki/Special:Redirect/file/San%20Jose%20State%20Spartans%20logo.svg",
-  "Hawai'i": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Hawaii_Warriors_logo.svg"
+  "Hawaii": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Hawaii_Warriors_logo.svg"
 };
 
 function normalize(name) {
