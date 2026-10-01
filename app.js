@@ -1,7 +1,7 @@
 const logoAliases = {
   "Miami (OH)": "Miami (OH)",
   "UL Monroe": "UL Monroe",
-  "San José State": "https://www.sjsu.edu/communications/pics/SpartanSpirit_variation.png",
+  "San José State": "https://static.cdnlogo.com/logos/s/42/san-jose-state-spartans.svg",
   "Hawai'i": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Hawaii_Warriors_logo.svg"
 };
 
