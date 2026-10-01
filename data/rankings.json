@@ -1,7 +1,7 @@
 {
   "season": 2026,
   "teamCount": 138,
-  "generatedAt": "2026-10-01T07:41:32.858218+00:00",
+  "generatedAt": "2026-10-01T10:17:28.503227+00:00",
   "dataProvider": "CollegeFootballData.com",
   "rankings": [
     {
@@ -1380,7 +1380,7 @@
       "rank": 125
     },
     {
-      "team": "Hawaii",
+      "team": "Hawai'i",
       "conference": "Mountain West",
       "wins": 1,
       "losses": 3,
