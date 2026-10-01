@@ -1,7 +1,7 @@
 const logoAliases = {
   "Miami (OH)": "Miami (OH)",
   "UL Monroe": "UL Monroe",
-  "San José State": "https://commons.wikimedia.org/wiki/Special:Redirect/file/San_Jos%C3%A9_State_Spartans_logo.svg",
+  "San José State": "https://www.sjsu.edu/communications/pics/SpartanSpirit_variation.png",
   "Hawai'i": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Hawaii_Warriors_logo.svg"
 };
 
@@ -42,6 +42,7 @@ async function loadTeamLogos() {
 
       const img = document.createElement("img");
       img.className = "team-logo";
+      if (originalName === "San José State") img.classList.add("spartan-logo");
       img.src = logoUrl;
       img.alt = originalName + " logo";
       img.width = 32;
