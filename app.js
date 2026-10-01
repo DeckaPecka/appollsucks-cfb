@@ -1,6 +1,8 @@
 const logoAliases = {
   "Miami (OH)": "Miami (OH)",
-  "UL Monroe": "UL Monroe"
+  "UL Monroe": "UL Monroe",
+  "San José State": "https://a.espncdn.com/i/teamlogos/ncaa/500/23.png",
+  "Hawai'i": "https://a.espncdn.com/i/teamlogos/ncaa/500/62.png"
 };
 
 function normalize(name) {
@@ -31,10 +33,12 @@ async function loadTeamLogos() {
 
     cells.forEach(cell => {
       const originalName = cell.textContent.trim();
-      const lookupName = logoAliases[originalName] || originalName;
-      const directLogo = logoMap[lookupName];
-      const normalizedLogo = normalizedLogoMap[normalize(lookupName)];
-      const logoUrl = directLogo || normalizedLogo;
+      const alias = logoAliases[originalName];
+
+      // Explicit logo URL overrides the CFBD logo map.
+      const logoUrl = alias && alias.startsWith("http")
+        ? alias
+        : logoMap[alias || originalName] || normalizedLogoMap[normalize(alias || originalName)];
 
       if (!logoUrl) return;
 
