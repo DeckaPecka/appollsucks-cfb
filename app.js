@@ -1,8 +1,8 @@
 const logoAliases = {
   "Miami (OH)": "Miami (OH)",
   "UL Monroe": "UL Monroe",
-  "San José State": "https://commons.wikimedia.org/wiki/Special:Redirect/file/San%20Jose%20State%20interlocking%20logo.svg",
-  "Hawai'i": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Hawaii%20Warriors%20logo.svg"
+  "San José State": "https://commons.wikimedia.org/wiki/Special:Redirect/file/San_Jos%C3%A9_State_Spartans_logo.svg",
+  "Hawai'i": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Hawaii_Warriors_logo.svg"
 };
 
 function normalize(name) {
@@ -34,7 +34,6 @@ async function loadTeamLogos() {
     cells.forEach(cell => {
       const originalName = cell.textContent.trim();
       const alias = logoAliases[originalName];
-
       const logoUrl = alias && alias.startsWith("http")
         ? alias
         : logoMap[alias || originalName] || normalizedLogoMap[normalize(alias || originalName)];
@@ -48,11 +47,7 @@ async function loadTeamLogos() {
       img.width = 32;
       img.height = 32;
       img.loading = "lazy";
-
-      img.onerror = () => {
-        console.warn("Logo failed:", originalName, logoUrl);
-        img.remove();
-      };
+      img.onerror = () => img.remove();
 
       cell.prepend(img);
       cell.classList.add("has-logo");
