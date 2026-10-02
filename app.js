@@ -52,8 +52,17 @@ async function loadBacktest() {
     setText("backtest-baseline", overall.baselineMae == null ? "—" : Number(overall.baselineMae).toFixed(2) + " pts");
     setText("backtest-winner", overall.winnerAccuracy == null ? "—" : (Number(overall.winnerAccuracy) * 100).toFixed(1) + "%");
     setText("backtest-elo-winner", overall.eloWinnerAccuracy == null ? "—" : (Number(overall.eloWinnerAccuracy) * 100).toFixed(1) + "%");
+    setText("backtest-market-games", overall.marketGames == null ? "—" : Number(overall.marketGames).toLocaleString());
+    setText("backtest-market-model-mae", overall.modelMaeOnMarketGames == null ? "—" : Number(overall.modelMaeOnMarketGames).toFixed(2) + " pts");
+    setText("backtest-market-mae", overall.marketSpreadMae == null ? "—" : Number(overall.marketSpreadMae).toFixed(2) + " pts");
+    setText("backtest-ats", overall.modelCoverAccuracy == null ? "—" : (Number(overall.modelCoverAccuracy) * 100).toFixed(1) + "%");
     if (status) {
       status.textContent = "Tested " + (data.seasons || []).length + " seasons • " + (overall.games || 0) + " games";
+    }
+    const marketNote = document.getElementById("backtest-market-note");
+    if (marketNote) {
+      marketNote.textContent = (data.spreadBaselineDescription || "Historical closing spreads") +
+        " Betting lines are used only for comparison, not as model inputs.";
     }
     if (body) {
       body.innerHTML = (data.seasonResults || []).map(row =>
