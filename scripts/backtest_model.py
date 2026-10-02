@@ -210,7 +210,11 @@ for season in range(FIRST_SEASON, LAST_SEASON + 1):
         # Prefer consensus closing spread; otherwise average available providers.
         consensus = [
             item for item in valid
-            if "consensus" in str((item.get("provider") or {}).get("name", "")).lower()
+            if "consensus" in str(
+                (item.get("provider") or {}).get("name", "")
+                if isinstance(item.get("provider"), dict)
+                else item.get("provider") or ""
+            ).lower()
         ]
         selected = consensus or valid
         spreads = [float(item["spread"]) for item in selected]
