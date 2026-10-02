@@ -288,7 +288,7 @@ output = {
     "dataProvider": "CollegeFootballData.com",
     "model": {
         "name": "AP Poll Sucks Balanced Power Model",
-        "version": 1,
+        "version": 2,
         "weights": WEIGHTS,
         "componentScale": "0-100 standardized scores; 50 is the FBS average",
         "notes": [
