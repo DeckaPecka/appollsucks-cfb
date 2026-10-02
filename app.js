@@ -51,6 +51,7 @@ async function loadBacktest() {
     setText("backtest-mae", overall.mae == null ? "—" : Number(overall.mae).toFixed(2) + " pts");
     setText("backtest-baseline", overall.baselineMae == null ? "—" : Number(overall.baselineMae).toFixed(2) + " pts");
     setText("backtest-winner", overall.winnerAccuracy == null ? "—" : (Number(overall.winnerAccuracy) * 100).toFixed(1) + "%");
+    setText("backtest-elo-winner", overall.eloWinnerAccuracy == null ? "—" : (Number(overall.eloWinnerAccuracy) * 100).toFixed(1) + "%");
     if (status) {
       status.textContent = "Tested " + (data.seasons || []).length + " seasons • " + (overall.games || 0) + " games";
     }
