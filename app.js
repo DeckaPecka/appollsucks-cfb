@@ -69,6 +69,23 @@ async function loadRankings() {
 
   const snapshotTeams = document.getElementById("snapshot-teams");
   if (snapshotTeams) snapshotTeams.textContent = data.teamCount ?? rows.length;
+  const model = data.model || {};
+  const weights = model.weights || {};
+  const weightLabels = {
+    talent: "weight-talent",
+    performance: "weight-performance",
+    schedule: "weight-schedule",
+    recentForm: "weight-recentForm"
+  };
+  Object.entries(weightLabels).forEach(([key, id]) => {
+    const element = document.getElementById(id);
+    if (element && weights[key] != null) element.textContent = Math.round(Number(weights[key]) * 100) + "%";
+  });
+  const weightStage = document.getElementById("weight-stage");
+  if (weightStage && model.seasonWeek != null) {
+    weightStage.textContent = "Current weights for season week " + model.seasonWeek + " (based on the latest completed games).";
+  }
+
   const comparison = data.fpiComparison || {};
   const snapshotFpi = document.getElementById("snapshot-fpi");
   const snapshotGap = document.getElementById("snapshot-gap");
