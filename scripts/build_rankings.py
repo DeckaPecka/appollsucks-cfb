@@ -9,7 +9,32 @@ from datetime import datetime, timezone
 
 API = "https://api.collegefootballdata.com"
 YEAR = 2026
-WEIGHTS = {"talent": 0.25, "performance": 0.40, "schedule": 0.20, "recentForm": 0.15}
+# Season-stage target weights. We interpolate between checkpoints so the model
+# transitions smoothly instead of abruptly changing weights at a cutoff week.
+WEIGHT_CHECKPOINTS = [
+    (2,  {"talent": 0.40, "performance": 0.35, "schedule": 0.15, "recentForm": 0.10}),
+    (5,  {"talent": 0.30, "performance": 0.40, "schedule": 0.20, "recentForm": 0.10}),
+    (8,  {"talent": 0.20, "performance": 0.45, "schedule": 0.25, "recentForm": 0.10}),
+    (11, {"talent": 0.12, "performance": 0.48, "schedule": 0.28, "recentForm": 0.12}),
+    (14, {"talent": 0.05, "performance": 0.50, "schedule": 0.30, "recentForm": 0.15}),
+]
+
+
+def weights_for_week(week):
+    """Linearly interpolate season weights between the defined checkpoints."""
+    if week <= WEIGHT_CHECKPOINTS[0][0]:
+        return dict(WEIGHT_CHECKPOINTS[0][1])
+    for (left_week, left), (right_week, right) in zip(WEIGHT_CHECKPOINTS, WEIGHT_CHECKPOINTS[1:]):
+        if week <= right_week:
+            fraction = (week - left_week) / (right_week - left_week)
+            weights = {
+                name: left[name] + fraction * (right[name] - left[name])
+                for name in left
+            }
+            # Keep the total exactly 100% despite floating-point rounding.
+            total = sum(weights.values())
+            return {name: value / total for name, value in weights.items()}
+    return dict(WEIGHT_CHECKPOINTS[-1][1])
 KEY = os.environ.get("CFBD_API_KEY")
 if not KEY:
     raise SystemExit("CFBD_API_KEY GitHub secret is missing.")
@@ -92,6 +117,8 @@ games = [
     if game.get("homePoints") is not None and game.get("awayPoints") is not None
     and game.get("homeTeam") and game.get("awayTeam")
 ]
+season_week = max(1, max((int(game.get("week") or 0) for game in games), default=1))
+WEIGHTS = weights_for_week(season_week)
 
 stats = defaultdict(lambda: {"games": 0, "wins": 0, "losses": 0, "pf": 0, "pa": 0})
 opponents = defaultdict(list)
@@ -255,6 +282,7 @@ else:
 
 output = {
     "season": YEAR,
+    "seasonWeek": season_week,
     "teamCount": len(rows),
     "generatedAt": datetime.now(timezone.utc).isoformat(),
     "dataProvider": "CollegeFootballData.com",
@@ -264,7 +292,8 @@ output = {
         "weights": WEIGHTS,
         "componentScale": "0-100 standardized scores; 50 is the FBS average",
         "notes": [
-            "Initial weights are provisional and should be validated against historical seasons.",
+            "Weights change smoothly by season week: talent starts at 40% and declines to 5% by week 14, while performance and schedule gain influence.",
+            "Weights are linearly interpolated between checkpoints at weeks 2, 5, 8, 11, and 14.",
             "Roster talent combines team talent with returning production when available.",
             "Performance uses available PPA plus record and scoring margin, with a fallback when PPA is unavailable.",
             "Schedule uses opponents' current-season win percentage as a first-pass strength proxy.",
