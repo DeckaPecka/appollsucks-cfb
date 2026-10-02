@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-02T05:56:25.931818+00:00",
+  "generatedAt": "2026-10-02T06:05:57.894954+00:00",
   "modelVersion": 3,
   "seasons": [
     2015,
@@ -21,11 +21,16 @@
     "winnerAccuracy": 0.7207,
     "baselineMae": 16.515,
     "baselineRmse": 21.081,
-    "eloWinnerAccuracy": 0.6219
+    "eloWinnerAccuracy": 0.6219,
+    "marketGames": 7884,
+    "modelMaeOnMarketGames": 13.489,
+    "marketSpreadMae": 12.328,
+    "modelCoverAccuracy": 0.4927
   },
   "beatsHomeFieldOnlyBaseline": true,
   "baselineDescription": "Predicts a 2.5-point home win for non-neutral games and 0 points at neutral sites.",
   "eloBaselineDescription": "Simple Elo baseline: all teams start at 1500; 55 Elo points of home advantage; K-factor 20; ratings update only after all games in a week have been predicted.",
+  "spreadBaselineDescription": "CollegeFootballData closing spread lines; market-implied home margin is the negative of the listed home-team spread. Prefer consensus when available, otherwise average providers.",
   "method": "Walk-forward by regular-season week: each prediction uses only completed games from earlier weeks in the same season. Model ratings and Elo predictions are frozen before each target week's results are used.",
   "seasonResults": [
     {
@@ -36,7 +41,11 @@
       "winnerAccuracy": 0.7541,
       "baselineMae": 17.116,
       "baselineRmse": 21.671,
-      "eloWinnerAccuracy": 0.6146
+      "eloWinnerAccuracy": 0.6146,
+      "marketGames": 724,
+      "modelMaeOnMarketGames": 13.444,
+      "marketSpreadMae": 12.545,
+      "modelCoverAccuracy": 0.4788
     },
     {
       "season": 2016,
@@ -46,7 +55,11 @@
       "winnerAccuracy": 0.7024,
       "baselineMae": 17.088,
       "baselineRmse": 21.972,
-      "eloWinnerAccuracy": 0.612
+      "eloWinnerAccuracy": 0.612,
+      "marketGames": 719,
+      "modelMaeOnMarketGames": 13.971,
+      "marketSpreadMae": 13.118,
+      "modelCoverAccuracy": 0.5435
     },
     {
       "season": 2017,
@@ -56,7 +69,11 @@
       "winnerAccuracy": 0.7351,
       "baselineMae": 17.018,
       "baselineRmse": 21.493,
-      "eloWinnerAccuracy": 0.6141
+      "eloWinnerAccuracy": 0.6141,
+      "marketGames": 736,
+      "modelMaeOnMarketGames": 13.546,
+      "marketSpreadMae": 12.097,
+      "modelCoverAccuracy": 0.4797
     },
     {
       "season": 2018,
@@ -66,7 +83,11 @@
       "winnerAccuracy": 0.7285,
       "baselineMae": 16.956,
       "baselineRmse": 21.312,
-      "eloWinnerAccuracy": 0.6385
+      "eloWinnerAccuracy": 0.6385,
+      "marketGames": 733,
+      "modelMaeOnMarketGames": 13.677,
+      "marketSpreadMae": 12.429,
+      "modelCoverAccuracy": 0.486
     },
     {
       "season": 2019,
@@ -76,7 +97,11 @@
       "winnerAccuracy": 0.7371,
       "baselineMae": 17.282,
       "baselineRmse": 22.161,
-      "eloWinnerAccuracy": 0.6458
+      "eloWinnerAccuracy": 0.6458,
+      "marketGames": 734,
+      "modelMaeOnMarketGames": 13.673,
+      "marketSpreadMae": 12.128,
+      "modelCoverAccuracy": 0.4695
     },
     {
       "season": 2020,
@@ -86,7 +111,11 @@
       "winnerAccuracy": 0.7244,
       "baselineMae": 16.395,
       "baselineRmse": 20.904,
-      "eloWinnerAccuracy": 0.5925
+      "eloWinnerAccuracy": 0.5925,
+      "marketGames": 508,
+      "modelMaeOnMarketGames": 13.865,
+      "marketSpreadMae": 12.897,
+      "modelCoverAccuracy": 0.505
     },
     {
       "season": 2021,
@@ -96,7 +125,11 @@
       "winnerAccuracy": 0.6899,
       "baselineMae": 16.458,
       "baselineRmse": 21.018,
-      "eloWinnerAccuracy": 0.627
+      "eloWinnerAccuracy": 0.627,
+      "marketGames": 732,
+      "modelMaeOnMarketGames": 13.713,
+      "marketSpreadMae": 12.555,
+      "modelCoverAccuracy": 0.4848
     },
     {
       "season": 2022,
@@ -106,7 +139,11 @@
       "winnerAccuracy": 0.7044,
       "baselineMae": 15.434,
       "baselineRmse": 20.065,
-      "eloWinnerAccuracy": 0.6226
+      "eloWinnerAccuracy": 0.6226,
+      "marketGames": 734,
+      "modelMaeOnMarketGames": 13.184,
+      "marketSpreadMae": 12.043,
+      "modelCoverAccuracy": 0.5069
     },
     {
       "season": 2023,
@@ -116,7 +153,11 @@
       "winnerAccuracy": 0.732,
       "baselineMae": 15.808,
       "baselineRmse": 20.189,
-      "eloWinnerAccuracy": 0.6187
+      "eloWinnerAccuracy": 0.6187,
+      "marketGames": 750,
+      "modelMaeOnMarketGames": 13.085,
+      "marketSpreadMae": 11.957,
+      "modelCoverAccuracy": 0.4765
     },
     {
       "season": 2024,
@@ -126,7 +167,11 @@
       "winnerAccuracy": 0.7061,
       "baselineMae": 15.994,
       "baselineRmse": 20.467,
-      "eloWinnerAccuracy": 0.6077
+      "eloWinnerAccuracy": 0.6077,
+      "marketGames": 752,
+      "modelMaeOnMarketGames": 13.413,
+      "marketSpreadMae": 12.204,
+      "modelCoverAccuracy": 0.4947
     },
     {
       "season": 2025,
@@ -136,7 +181,11 @@
       "winnerAccuracy": 0.7152,
       "baselineMae": 16.136,
       "baselineRmse": 20.549,
-      "eloWinnerAccuracy": 0.6378
+      "eloWinnerAccuracy": 0.6378,
+      "marketGames": 762,
+      "modelMaeOnMarketGames": 12.958,
+      "marketSpreadMae": 11.856,
+      "modelCoverAccuracy": 0.4993
     }
   ],
   "notes": [
@@ -144,6 +193,8 @@
     "Winner accuracy is the share of games where the predicted margin has the same sign as the actual margin.",
     "The home-field-only baseline uses no team-strength information.",
     "The Elo baseline starts every team at 1500, uses a 55-point Elo home advantage and K-factor 20, and updates only after all games in a week have been predicted.",
+    "Closing betting spreads are used only as a benchmark, never as an input to the model's ratings. Market comparison metrics use only games with a recorded spread; model MAE is recalculated on that same subset for a fair comparison.",
+    "Against-the-spread accuracy measures whether the model correctly predicts which side covers the closing spread; pushes are excluded.",
     "Leakage check: target-week scores are used only to grade predictions and update Elo after that week's predictions; ratings for the target week use earlier weeks only.",
     "Historical talent/recruiting inputs are used only as a preseason prior; the script does not use season-final FPI, box-score statistics, or target-week results as model features.",
     "The test covers regular-season FBS-vs-FBS games from historical seasons; it does not include bowl or playoff games."
