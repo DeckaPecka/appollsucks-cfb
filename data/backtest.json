@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-02T05:46:30.025292+00:00",
+  "generatedAt": "2026-10-02T05:53:39.078598+00:00",
   "modelVersion": 3,
   "seasons": [
     2015,
@@ -20,11 +20,13 @@
     "rmse": 17.068,
     "winnerAccuracy": 0.7207,
     "baselineMae": 16.515,
-    "baselineRmse": 21.081
+    "baselineRmse": 21.081,
+    "eloWinnerAccuracy": 0.6219
   },
   "beatsHomeFieldOnlyBaseline": true,
   "baselineDescription": "Predicts a 2.5-point home win for non-neutral games and 0 points at neutral sites.",
-  "method": "Walk-forward by regular-season week: each prediction uses only completed games from earlier weeks in the same season.",
+  "eloBaselineDescription": "Simple Elo baseline: all teams start at 1500; 55 Elo points of home advantage; K-factor 20; ratings update only after all games in a week have been predicted.",
+  "method": "Walk-forward by regular-season week: each prediction uses only completed games from earlier weeks in the same season. Model ratings and Elo predictions are frozen before each target week's results are used.",
   "seasonResults": [
     {
       "season": 2015,
@@ -33,7 +35,8 @@
       "rmse": 17.194,
       "winnerAccuracy": 0.7541,
       "baselineMae": 17.116,
-      "baselineRmse": 21.671
+      "baselineRmse": 21.671,
+      "eloWinnerAccuracy": 0.6146
     },
     {
       "season": 2016,
@@ -42,7 +45,8 @@
       "rmse": 18.011,
       "winnerAccuracy": 0.7024,
       "baselineMae": 17.088,
-      "baselineRmse": 21.972
+      "baselineRmse": 21.972,
+      "eloWinnerAccuracy": 0.612
     },
     {
       "season": 2017,
@@ -51,7 +55,8 @@
       "rmse": 17.139,
       "winnerAccuracy": 0.7351,
       "baselineMae": 17.018,
-      "baselineRmse": 21.493
+      "baselineRmse": 21.493,
+      "eloWinnerAccuracy": 0.6141
     },
     {
       "season": 2018,
@@ -60,7 +65,8 @@
       "rmse": 17.059,
       "winnerAccuracy": 0.7285,
       "baselineMae": 16.956,
-      "baselineRmse": 21.312
+      "baselineRmse": 21.312,
+      "eloWinnerAccuracy": 0.6385
     },
     {
       "season": 2019,
@@ -69,7 +75,8 @@
       "rmse": 17.147,
       "winnerAccuracy": 0.7371,
       "baselineMae": 17.282,
-      "baselineRmse": 22.161
+      "baselineRmse": 22.161,
+      "eloWinnerAccuracy": 0.6458
     },
     {
       "season": 2020,
@@ -78,7 +85,8 @@
       "rmse": 17.463,
       "winnerAccuracy": 0.7244,
       "baselineMae": 16.395,
-      "baselineRmse": 20.904
+      "baselineRmse": 20.904,
+      "eloWinnerAccuracy": 0.5925
     },
     {
       "season": 2021,
@@ -87,7 +95,8 @@
       "rmse": 17.034,
       "winnerAccuracy": 0.6899,
       "baselineMae": 16.458,
-      "baselineRmse": 21.018
+      "baselineRmse": 21.018,
+      "eloWinnerAccuracy": 0.627
     },
     {
       "season": 2022,
@@ -96,7 +105,8 @@
       "rmse": 16.802,
       "winnerAccuracy": 0.7044,
       "baselineMae": 15.434,
-      "baselineRmse": 20.065
+      "baselineRmse": 20.065,
+      "eloWinnerAccuracy": 0.6226
     },
     {
       "season": 2023,
@@ -105,7 +115,8 @@
       "rmse": 16.485,
       "winnerAccuracy": 0.732,
       "baselineMae": 15.808,
-      "baselineRmse": 20.189
+      "baselineRmse": 20.189,
+      "eloWinnerAccuracy": 0.6187
     },
     {
       "season": 2024,
@@ -114,7 +125,8 @@
       "rmse": 17.02,
       "winnerAccuracy": 0.7061,
       "baselineMae": 15.994,
-      "baselineRmse": 20.467
+      "baselineRmse": 20.467,
+      "eloWinnerAccuracy": 0.6077
     },
     {
       "season": 2025,
@@ -123,14 +135,17 @@
       "rmse": 16.522,
       "winnerAccuracy": 0.7152,
       "baselineMae": 16.136,
-      "baselineRmse": 20.549
+      "baselineRmse": 20.549,
+      "eloWinnerAccuracy": 0.6378
     }
   ],
   "notes": [
     "MAE and RMSE measure error in the predicted home-team scoring margin, in points; lower is better.",
     "Winner accuracy is the share of games where the predicted margin has the same sign as the actual margin.",
-    "The baseline uses only home-field advantage and no team-strength information.",
-    "The test covers regular-season FBS-vs-FBS games from historical seasons; it does not include bowl or playoff games.",
-    "Historical talent inputs are used as the early-season prior when available; otherwise the model falls back to no talent prior."
+    "The home-field-only baseline uses no team-strength information.",
+    "The Elo baseline starts every team at 1500, uses a 55-point Elo home advantage and K-factor 20, and updates only after all games in a week have been predicted.",
+    "Leakage check: target-week scores are used only to grade predictions and update Elo after that week's predictions; ratings for the target week use earlier weeks only.",
+    "Historical talent/recruiting inputs are used only as a preseason prior; the script does not use season-final FPI, box-score statistics, or target-week results as model features.",
+    "The test covers regular-season FBS-vs-FBS games from historical seasons; it does not include bowl or playoff games."
   ]
 }
