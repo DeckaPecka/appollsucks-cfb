@@ -198,13 +198,17 @@ for season in range(FIRST_SEASON, LAST_SEASON + 1):
     games = get("/games", {"year": season, "seasonType": "regular", "classification": "fbs"})
     lines_games = get_optional("/lines", {"year": season, "seasonType": "regular"})
     lines_by_game = {}
+    lines_by_matchup = {}
     for line_game in lines_games:
         candidates = line_game.get("lines") or []
-        valid = [
-            item for item in candidates
-            if isinstance(item.get("spread"), (int, float))
-            and not isinstance(item.get("spread"), bool)
-        ]
+        valid = []
+        for item in candidates:
+            try:
+                spread_value = float(item.get("spread"))
+                if math.isfinite(spread_value):
+                    valid.append({**item, "_spreadValue": spread_value})
+            except (TypeError, ValueError):
+                continue
         if not valid:
             continue
         # Prefer consensus closing spread; otherwise average available providers.
@@ -217,8 +221,17 @@ for season in range(FIRST_SEASON, LAST_SEASON + 1):
             ).lower()
         ]
         selected = consensus or valid
-        spreads = [float(item["spread"]) for item in selected]
-        lines_by_game[line_game.get("id")] = -statistics.mean(spreads)
+        spreads = [item["_spreadValue"] for item in selected]
+        # CFBD's line records and game records do not always expose matching IDs.
+        # Store both ID-based and matchup-based keys to avoid losing valid lines.
+        market_home_margin = -statistics.mean(spreads)
+        if line_game.get("id") is not None:
+            lines_by_game[line_game.get("id")] = market_home_margin
+        line_home = norm(line_game.get("homeTeam"))
+        line_away = norm(line_game.get("awayTeam"))
+        line_week = line_game.get("week")
+        if line_home and line_away and line_week is not None:
+            lines_by_matchup[(int(line_game.get("season") or season), int(line_week), line_home, line_away)] = market_home_margin
     games = [
         game for game in games
         if game.get("completed")
@@ -274,7 +287,9 @@ for season in range(FIRST_SEASON, LAST_SEASON + 1):
                 "predicted": predicted,
                 "baseline": baseline,
                 "eloHomeWinProbability": elo_home_probability,
-                "marketHomeMargin": lines_by_game.get(game.get("id")),
+                "marketHomeMargin": lines_by_game.get(game.get("id"), lines_by_matchup.get((
+                    season, target_week, norm(home), norm(away)
+                ))),
             }
             all_predictions.append(entry)
             season_predictions.append(entry)
@@ -297,7 +312,11 @@ for season in range(FIRST_SEASON, LAST_SEASON + 1):
 
     result = {"season": season, **metrics(season_predictions)}
     season_results.append(result)
-    print(f"{season}: {result['games']} games, MAE {result['mae']}, baseline MAE {result['baselineMae']}")
+    print(
+        f"{season}: {result['games']} games, MAE {result['mae']}, "
+        f"baseline MAE {result['baselineMae']}, spread games {result['marketGames']} "
+        f"(line records fetched: {len(lines_games)})"
+    )
 
 overall = metrics(all_predictions)
 improved = (
@@ -312,7 +331,11 @@ output = {
     "beatsHomeFieldOnlyBaseline": improved,
     "baselineDescription": "Predicts a 2.5-point home win for non-neutral games and 0 points at neutral sites.",
     "eloBaselineDescription": "Simple Elo baseline: all teams start at 1500; 55 Elo points of home advantage; K-factor 20; ratings update only after all games in a week have been predicted.",
-    "spreadBaselineDescription": "CollegeFootballData closing spread lines; market-implied home margin is the negative of the listed home-team spread. Prefer consensus when available, otherwise average providers.",
+    "spreadBaselineDescription": "CollegeFootballData historical spread lines; market-implied home margin is the negative of the listed home-team spread. Prefer consensus when available, otherwise average providers. Games are matched by game ID, with season/week/home/away matchup fallback.",
+    "spreadDataStatus": {
+        "gamesWithLines": overall["marketGames"],
+        "note": "If gamesWithLines is zero, the CFBD API returned no usable historical spread values for the requested seasons; check API access and line data availability."
+    },
     "method": "Walk-forward by regular-season week: each prediction uses only completed games from earlier weeks in the same season. Model ratings and Elo predictions are frozen before each target week's results are used.",
     "seasonResults": season_results,
     "notes": [
