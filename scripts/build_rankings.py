@@ -9,32 +9,6 @@ from datetime import datetime, timezone
 
 API = "https://api.collegefootballdata.com"
 YEAR = 2026
-# Season-stage target weights. We interpolate between checkpoints so the model
-# transitions smoothly instead of abruptly changing weights at a cutoff week.
-WEIGHT_CHECKPOINTS = [
-    (2,  {"talent": 0.40, "performance": 0.35, "schedule": 0.15, "recentForm": 0.10}),
-    (5,  {"talent": 0.30, "performance": 0.40, "schedule": 0.20, "recentForm": 0.10}),
-    (8,  {"talent": 0.20, "performance": 0.45, "schedule": 0.25, "recentForm": 0.10}),
-    (11, {"talent": 0.12, "performance": 0.48, "schedule": 0.28, "recentForm": 0.12}),
-    (14, {"talent": 0.05, "performance": 0.50, "schedule": 0.30, "recentForm": 0.15}),
-]
-
-
-def weights_for_week(week):
-    """Linearly interpolate season weights between the defined checkpoints."""
-    if week <= WEIGHT_CHECKPOINTS[0][0]:
-        return dict(WEIGHT_CHECKPOINTS[0][1])
-    for (left_week, left), (right_week, right) in zip(WEIGHT_CHECKPOINTS, WEIGHT_CHECKPOINTS[1:]):
-        if week <= right_week:
-            fraction = (week - left_week) / (right_week - left_week)
-            weights = {
-                name: left[name] + fraction * (right[name] - left[name])
-                for name in left
-            }
-            # Keep the total exactly 100% despite floating-point rounding.
-            total = sum(weights.values())
-            return {name: value / total for name, value in weights.items()}
-    return dict(WEIGHT_CHECKPOINTS[-1][1])
 KEY = os.environ.get("CFBD_API_KEY")
 if not KEY:
     raise SystemExit("CFBD_API_KEY GitHub secret is missing.")
@@ -92,6 +66,84 @@ def z_scores(values, neutral=50.0):
     }
 
 
+
+def standardized(values):
+    """Return unclipped z-scores, using zero for missing or unavailable inputs."""
+    usable = [float(v) for v in values.values() if v is not None and math.isfinite(float(v))]
+    if len(usable) < 2:
+        return {key: 0.0 for key in values}
+    mean = statistics.mean(usable)
+    stdev = statistics.pstdev(usable)
+    if stdev == 0:
+        return {key: 0.0 for key in values}
+    return {
+        key: ((float(value) - mean) / stdev)
+        if value is not None and math.isfinite(float(value)) else 0.0
+        for key, value in values.items()
+    }
+
+
+def solve_linear_system(matrix, vector):
+    """Solve Ax=b using Gaussian elimination with partial pivoting."""
+    n = len(vector)
+    a = [list(map(float, matrix[i])) + [float(vector[i])] for i in range(n)]
+    for col in range(n):
+        pivot = max(range(col, n), key=lambda row: abs(a[row][col]))
+        if abs(a[pivot][col]) < 1e-12:
+            raise ValueError("Power-rating system is singular.")
+        a[col], a[pivot] = a[pivot], a[col]
+        pivot_value = a[col][col]
+        for j in range(col, n + 1):
+            a[col][j] /= pivot_value
+        for row in range(n):
+            if row == col:
+                continue
+            factor = a[row][col]
+            if factor == 0:
+                continue
+            for j in range(col, n + 1):
+                a[row][j] -= factor * a[col][j]
+    return [a[i][n] for i in range(n)]
+
+
+def fit_power_ratings(team_names, completed_games, prior_points, prior_game_equivalents):
+    """Fit neutral-field team ratings in points above/below the average FBS team."""
+    index = {norm(team): i for i, team in enumerate(team_names)}
+    n = len(team_names)
+    matrix = [[0.0] * n for _ in range(n)]
+    vector = [0.0] * n
+    usable_games = 0
+    home_field_advantage = 2.5
+    for game in completed_games:
+        home_key, away_key = norm(game.get("homeTeam")), norm(game.get("awayTeam"))
+        if home_key not in index or away_key not in index:
+            continue
+        home_i, away_i = index[home_key], index[away_key]
+        if home_i == away_i:
+            continue
+        margin = float(game["homePoints"]) - float(game["awayPoints"])
+        if not game.get("neutralSite", False):
+            margin -= home_field_advantage
+        margin = max(-28.0, min(28.0, margin))
+        matrix[home_i][home_i] += 1.0
+        matrix[away_i][away_i] += 1.0
+        matrix[home_i][away_i] -= 1.0
+        matrix[away_i][home_i] -= 1.0
+        vector[home_i] += margin
+        vector[away_i] -= margin
+        usable_games += 1
+
+    for i, team in enumerate(team_names):
+        strength = max(0.0, float(prior_game_equivalents))
+        matrix[i][i] += strength + 0.05
+        vector[i] += strength * float(prior_points.get(team, 0.0))
+
+    ratings = solve_linear_system(matrix, vector)
+    league_mean = statistics.mean(ratings) if ratings else 0.0
+    ratings = [value - league_mean for value in ratings]
+    return {team: round(ratings[i], 3) for i, team in enumerate(team_names)}, usable_games
+
+
 records = get("/records", {"year": YEAR})
 teams = [r for r in records if str(r.get("classification", "")).lower() == "fbs"]
 team_names = [r["team"] for r in teams]
@@ -118,7 +170,6 @@ games = [
     and game.get("homeTeam") and game.get("awayTeam")
 ]
 season_week = max(1, max((int(game.get("week") or 0) for game in games), default=1))
-WEIGHTS = weights_for_week(season_week)
 
 stats = defaultdict(lambda: {"games": 0, "wins": 0, "losses": 0, "pf": 0, "pa": 0})
 opponents = defaultdict(list)
@@ -210,39 +261,37 @@ for team in team_names:
     else:
         recent_raw[team] = None
 
-# Talent combines roster talent with returning production when both exist.
-talent_z = z_scores(talent_raw)
-returning_z = z_scores(returning_raw)
-talent_component = {
-    team: round(0.75 * talent_z[team] + 0.25 * returning_z[team], 3)
+# Convert roster inputs into a modest preseason prior measured in points.
+# The prior fades to zero by week 14, so game results increasingly drive ratings.
+talent_z = standardized(talent_raw)
+returning_z = standardized(returning_raw)
+prior_raw = {
+    team: (0.75 * talent_z[team] + 0.25 * returning_z[team])
     if returning_raw[team] is not None else talent_z[team]
     for team in team_names
 }
-performance_component = z_scores(performance_raw)
-schedule_component = z_scores(schedule_raw)
-recent_component = z_scores(recent_raw)
+prior_z = standardized(prior_raw)
+prior_points = {team: max(-18.0, min(18.0, 6.0 * prior_z[team])) for team in team_names}
+prior_game_equivalents = max(0.0, 4.0 * (14.0 - min(season_week, 14)) / 13.0)
+if not any(value is not None for value in talent_raw.values()):
+    prior_game_equivalents = 0.0
+
+ratings, fbs_games_used = fit_power_ratings(
+    team_names, games, prior_points, prior_game_equivalents
+)
 
 rows = []
 for team_record in teams:
     team = team_record["team"]
     key = norm(team)
     s = base[team]
-    components = {
-        "talent": talent_component[team],
-        "performance": performance_component[team],
-        "schedule": schedule_component[team],
-        "recentForm": recent_component[team],
-    }
-    # If an entire optional data source is unavailable, its component remains
-    # neutral (50) and the published weight remains transparent and constant.
-    rating = sum(WEIGHTS[name] * components[name] for name in WEIGHTS)
     fpi = first_number(fpi_by_team.get(key, {}), ["fpi"])
     rows.append({
         "team": team,
         "conference": team_record.get("conference"),
         **s,
-        "components": components,
-        "rating": round(rating, 3),
+        "rating": ratings[team],
+        "priorRating": round(prior_points[team], 3),
         "fpiRating": round(fpi, 3) if fpi is not None else None,
     })
 
@@ -287,18 +336,22 @@ output = {
     "generatedAt": datetime.now(timezone.utc).isoformat(),
     "dataProvider": "CollegeFootballData.com",
     "model": {
-        "name": "AP Poll Sucks Balanced Power Model",
-        "version": 2,
-        "weights": WEIGHTS,
-        "componentScale": "0-100 standardized scores; 50 is the FBS average",
+        "name": "AP Poll Sucks Opponent-Adjusted Point Model",
+        "version": 3,
+        "ratingUnit": "points",
+        "ratingMeaning": "Expected scoring margin versus an average FBS team on a neutral field",
+        "homeFieldAdvantage": 2.5,
+        "marginCap": 28,
+        "fbsGamesUsed": fbs_games_used,
+        "preseasonPriorGameEquivalents": round(prior_game_equivalents, 3),
         "notes": [
-            "Weights change smoothly by season week: talent starts at 40% and declines to 5% by week 14, while performance and schedule gain influence.",
-            "Weights are linearly interpolated between checkpoints at weeks 2, 5, 8, 11, and 14.",
-            "Roster talent combines team talent with returning production when available.",
-            "Performance uses available PPA plus record and scoring margin, with a fallback when PPA is unavailable.",
-            "Schedule uses opponents' current-season win percentage as a first-pass strength proxy.",
-            "Recent form uses the last four completed games with capped margins and a modest opponent-record adjustment.",
-            "Unavailable optional data is assigned a neutral score of 50."
+            "Ratings are point estimates relative to an average FBS team; the difference between two ratings is the projected neutral-field margin.",
+            "Each completed game contributes an opponent-adjusted scoring-margin equation, so schedule strength is accounted for through the full network of opponents rather than a separate win-percentage bonus.",
+            "Home-field advantage of 2.5 points is removed from non-neutral games before fitting the model.",
+            "Game margins are capped at plus or minus 28 points to limit the influence of extreme blowouts.",
+            "Roster talent is used only as a modest preseason prior, worth at most 18 points per standard deviation and fading to zero by week 14.",
+            "CFBD FPI is used only for comparison and never enters the rating calculation.",
+            "A small regularization term keeps ratings stable for teams with few or no completed FBS games."
         ]
     },
     "fpiComparison": fpi_comparison,
