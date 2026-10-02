@@ -26,9 +26,8 @@ function rankGap(value) {
   if (value === null || value === undefined || !Number.isFinite(Number(value))) return "—";
   const gap = Number(value);
   if (gap === 0) return "—";
-  const cls = gap < 0 ? "up" : "down";
   const label = gap > 0 ? "+" + gap : String(gap);
-  return '<span class="move ' + cls + '">' + label + "</span>";
+  return '<span class="move same">' + label + "</span>";
 }
 
 async function loadRankings() {
