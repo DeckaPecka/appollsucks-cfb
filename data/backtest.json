@@ -1,0 +1,136 @@
+{
+  "generatedAt": "2026-10-02T05:38:36.022830+00:00",
+  "modelVersion": 3,
+  "seasons": [
+    2015,
+    2016,
+    2017,
+    2018,
+    2019,
+    2020,
+    2021,
+    2022,
+    2023,
+    2024,
+    2025
+  ],
+  "overall": {
+    "games": 7884,
+    "mae": 13.489,
+    "rmse": 17.068,
+    "winnerAccuracy": 0.7207,
+    "baselineMae": 16.515,
+    "baselineRmse": 21.081
+  },
+  "beatsHomeFieldOnlyBaseline": true,
+  "baselineDescription": "Predicts a 2.5-point home win for non-neutral games and 0 points at neutral sites.",
+  "method": "Walk-forward by regular-season week: each prediction uses only completed games from earlier weeks in the same season.",
+  "seasonResults": [
+    {
+      "season": 2015,
+      "games": 724,
+      "mae": 13.444,
+      "rmse": 17.194,
+      "winnerAccuracy": 0.7541,
+      "baselineMae": 17.116,
+      "baselineRmse": 21.671
+    },
+    {
+      "season": 2016,
+      "games": 719,
+      "mae": 13.971,
+      "rmse": 18.011,
+      "winnerAccuracy": 0.7024,
+      "baselineMae": 17.088,
+      "baselineRmse": 21.972
+    },
+    {
+      "season": 2017,
+      "games": 736,
+      "mae": 13.546,
+      "rmse": 17.139,
+      "winnerAccuracy": 0.7351,
+      "baselineMae": 17.018,
+      "baselineRmse": 21.493
+    },
+    {
+      "season": 2018,
+      "games": 733,
+      "mae": 13.677,
+      "rmse": 17.059,
+      "winnerAccuracy": 0.7285,
+      "baselineMae": 16.956,
+      "baselineRmse": 21.312
+    },
+    {
+      "season": 2019,
+      "games": 734,
+      "mae": 13.673,
+      "rmse": 17.147,
+      "winnerAccuracy": 0.7371,
+      "baselineMae": 17.282,
+      "baselineRmse": 22.161
+    },
+    {
+      "season": 2020,
+      "games": 508,
+      "mae": 13.865,
+      "rmse": 17.463,
+      "winnerAccuracy": 0.7244,
+      "baselineMae": 16.395,
+      "baselineRmse": 20.904
+    },
+    {
+      "season": 2021,
+      "games": 732,
+      "mae": 13.713,
+      "rmse": 17.034,
+      "winnerAccuracy": 0.6899,
+      "baselineMae": 16.458,
+      "baselineRmse": 21.018
+    },
+    {
+      "season": 2022,
+      "games": 734,
+      "mae": 13.184,
+      "rmse": 16.802,
+      "winnerAccuracy": 0.7044,
+      "baselineMae": 15.434,
+      "baselineRmse": 20.065
+    },
+    {
+      "season": 2023,
+      "games": 750,
+      "mae": 13.085,
+      "rmse": 16.485,
+      "winnerAccuracy": 0.732,
+      "baselineMae": 15.808,
+      "baselineRmse": 20.189
+    },
+    {
+      "season": 2024,
+      "games": 752,
+      "mae": 13.413,
+      "rmse": 17.02,
+      "winnerAccuracy": 0.7061,
+      "baselineMae": 15.994,
+      "baselineRmse": 20.467
+    },
+    {
+      "season": 2025,
+      "games": 762,
+      "mae": 12.958,
+      "rmse": 16.522,
+      "winnerAccuracy": 0.7152,
+      "baselineMae": 16.136,
+      "baselineRmse": 20.549
+    }
+  ],
+  "notes": [
+    "MAE and RMSE measure error in the predicted home-team scoring margin, in points; lower is better.",
+    "Winner accuracy is the share of games where the predicted margin has the same sign as the actual margin.",
+    "The baseline uses only home-field advantage and no team-strength information.",
+    "The test covers regular-season FBS-vs-FBS games from historical seasons; it does not include bowl or playoff games.",
+    "Historical talent inputs are used as the early-season prior when available; otherwise the model falls back to no talent prior."
+  ]
+}
