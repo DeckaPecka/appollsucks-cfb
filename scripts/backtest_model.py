@@ -17,6 +17,9 @@ FIRST_SEASON = 2015
 LAST_SEASON = 2025
 HOME_FIELD_ADVANTAGE = 2.5
 MARGIN_CAP = 28.0
+ELO_INITIAL = 1500.0
+ELO_HOME_ADVANTAGE = 55.0
+ELO_K_FACTOR = 20.0
 
 
 def norm(name):
@@ -128,9 +131,14 @@ def fit_ratings(team_names, training_games, prior_points, prior_equivalents):
     return {team: ratings[i] - average for i, team in enumerate(team_names)}
 
 
+def elo_expected(home_elo, away_elo, neutral_site):
+    home_advantage = 0.0 if neutral_site else ELO_HOME_ADVANTAGE
+    return 1.0 / (1.0 + 10.0 ** (-(home_elo + home_advantage - away_elo) / 400.0))
+
+
 def metrics(predictions):
     if not predictions:
-        return {"games": 0, "mae": None, "rmse": None, "winnerAccuracy": None, "baselineMae": None, "baselineRmse": None}
+        return {"games": 0, "mae": None, "rmse": None, "winnerAccuracy": None, "baselineMae": None, "baselineRmse": None, "eloWinnerAccuracy": None}
     errors = [p["predicted"] - p["actual"] for p in predictions]
     baseline_errors = [p["baseline"] - p["actual"] for p in predictions]
     correct = sum(
@@ -139,6 +147,12 @@ def metrics(predictions):
         or (p["predicted"] < 0 and p["actual"] < 0)
         or (p["predicted"] == 0 and p["actual"] == 0)
     )
+    elo_correct = sum(
+        1 for p in predictions
+        if (p["eloHomeWinProbability"] > 0.5 and p["actual"] > 0)
+        or (p["eloHomeWinProbability"] < 0.5 and p["actual"] < 0)
+        or (p["eloHomeWinProbability"] == 0.5 and p["actual"] == 0)
+    )
     return {
         "games": len(predictions),
         "mae": round(statistics.mean(abs(error) for error in errors), 3),
@@ -146,6 +160,7 @@ def metrics(predictions):
         "winnerAccuracy": round(correct / len(predictions), 4),
         "baselineMae": round(statistics.mean(abs(error) for error in baseline_errors), 3),
         "baselineRmse": round(math.sqrt(statistics.mean(error * error for error in baseline_errors)), 3),
+        "eloWinnerAccuracy": round(elo_correct / len(predictions), 4),
     }
 
 
@@ -188,6 +203,7 @@ for season in range(FIRST_SEASON, LAST_SEASON + 1):
     prior_points = {team: max(-18.0, min(18.0, 6.0 * talent_z[team])) for team in team_names}
 
     season_predictions = []
+    elo_ratings = {team: ELO_INITIAL for team in team_names}
     weeks = sorted({int(game.get("week") or 0) for game in games if int(game.get("week") or 0) > 0})
     for target_week in weeks:
         training = [game for game in games if int(game.get("week") or 0) < target_week]
@@ -205,6 +221,9 @@ for season in range(FIRST_SEASON, LAST_SEASON + 1):
             hfa = 0.0 if game.get("neutralSite", False) else HOME_FIELD_ADVANTAGE
             predicted = ratings[home] - ratings[away] + hfa
             baseline = hfa
+            elo_home_probability = elo_expected(
+                elo_ratings[home], elo_ratings[away], bool(game.get("neutralSite", False))
+            )
             entry = {
                 "season": season,
                 "week": target_week,
@@ -213,9 +232,26 @@ for season in range(FIRST_SEASON, LAST_SEASON + 1):
                 "actual": actual,
                 "predicted": predicted,
                 "baseline": baseline,
+                "eloHomeWinProbability": elo_home_probability,
             }
             all_predictions.append(entry)
             season_predictions.append(entry)
+
+        # Update Elo only after every game in this week has been predicted, so
+        # another game's result from the same week cannot leak into a forecast.
+        for game in target_games:
+            home, away = game["homeTeam"], game["awayTeam"]
+            actual_home_score = (
+                1.0 if float(game["homePoints"]) > float(game["awayPoints"])
+                else 0.0 if float(game["homePoints"]) < float(game["awayPoints"])
+                else 0.5
+            )
+            expected_home_score = elo_expected(
+                elo_ratings[home], elo_ratings[away], bool(game.get("neutralSite", False))
+            )
+            change = ELO_K_FACTOR * (actual_home_score - expected_home_score)
+            elo_ratings[home] += change
+            elo_ratings[away] -= change
 
     result = {"season": season, **metrics(season_predictions)}
     season_results.append(result)
@@ -233,14 +269,17 @@ output = {
     "overall": overall,
     "beatsHomeFieldOnlyBaseline": improved,
     "baselineDescription": "Predicts a 2.5-point home win for non-neutral games and 0 points at neutral sites.",
-    "method": "Walk-forward by regular-season week: each prediction uses only completed games from earlier weeks in the same season.",
+    "eloBaselineDescription": "Simple Elo baseline: all teams start at 1500; 55 Elo points of home advantage; K-factor 20; ratings update only after all games in a week have been predicted.",
+    "method": "Walk-forward by regular-season week: each prediction uses only completed games from earlier weeks in the same season. Model ratings and Elo predictions are frozen before each target week's results are used.",
     "seasonResults": season_results,
     "notes": [
         "MAE and RMSE measure error in the predicted home-team scoring margin, in points; lower is better.",
         "Winner accuracy is the share of games where the predicted margin has the same sign as the actual margin.",
-        "The baseline uses only home-field advantage and no team-strength information.",
-        "The test covers regular-season FBS-vs-FBS games from historical seasons; it does not include bowl or playoff games.",
-        "Historical talent inputs are used as the early-season prior when available; otherwise the model falls back to no talent prior."
+        "The home-field-only baseline uses no team-strength information.",
+        "The Elo baseline starts every team at 1500, uses a 55-point Elo home advantage and K-factor 20, and updates only after all games in a week have been predicted.",
+        "Leakage check: target-week scores are used only to grade predictions and update Elo after that week's predictions; ratings for the target week use earlier weeks only.",
+        "Historical talent/recruiting inputs are used only as a preseason prior; the script does not use season-final FPI, box-score statistics, or target-week results as model features.",
+        "The test covers regular-season FBS-vs-FBS games from historical seasons; it does not include bowl or playoff games."
     ]
 }
 os.makedirs("data", exist_ok=True)
