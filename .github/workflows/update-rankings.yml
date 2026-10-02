@@ -4,6 +4,8 @@ on:
   push:
     paths:
       - "scripts/**"
+      - "app.js"
+      - "index.html"
       - ".github/workflows/**"
   workflow_dispatch:
   schedule:
