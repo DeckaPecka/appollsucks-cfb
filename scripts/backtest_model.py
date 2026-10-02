@@ -138,7 +138,7 @@ def elo_expected(home_elo, away_elo, neutral_site):
 
 def metrics(predictions):
     if not predictions:
-        return {"games": 0, "mae": None, "rmse": None, "winnerAccuracy": None, "baselineMae": None, "baselineRmse": None, "eloWinnerAccuracy": None}
+        return {"games": 0, "mae": None, "rmse": None, "winnerAccuracy": None, "baselineMae": None, "baselineRmse": None, "eloWinnerAccuracy": None, "marketGames": 0, "modelMaeOnMarketGames": None, "marketSpreadMae": None, "modelCoverAccuracy": None}
     errors = [p["predicted"] - p["actual"] for p in predictions]
     baseline_errors = [p["baseline"] - p["actual"] for p in predictions]
     correct = sum(
@@ -153,6 +153,20 @@ def metrics(predictions):
         or (p["eloHomeWinProbability"] < 0.5 and p["actual"] < 0)
         or (p["eloHomeWinProbability"] == 0.5 and p["actual"] == 0)
     )
+    market_predictions = [p for p in predictions if p.get("marketHomeMargin") is not None]
+    model_market_errors = [p["predicted"] - p["actual"] for p in market_predictions]
+    market_errors = [p["marketHomeMargin"] - p["actual"] for p in market_predictions]
+    # Against-the-spread (ATS): did the model correctly identify which side
+    # would cover the closing spread? Exact pushes are excluded.
+    ats_decisions = [
+        p for p in market_predictions
+        if abs(p["actual"] - p["marketHomeMargin"]) > 1e-9
+        and abs(p["predicted"] - p["marketHomeMargin"]) > 1e-9
+    ]
+    ats_correct = sum(
+        1 for p in ats_decisions
+        if (p["predicted"] - p["marketHomeMargin"]) * (p["actual"] - p["marketHomeMargin"]) > 0
+    )
     return {
         "games": len(predictions),
         "mae": round(statistics.mean(abs(error) for error in errors), 3),
@@ -161,6 +175,10 @@ def metrics(predictions):
         "baselineMae": round(statistics.mean(abs(error) for error in baseline_errors), 3),
         "baselineRmse": round(math.sqrt(statistics.mean(error * error for error in baseline_errors)), 3),
         "eloWinnerAccuracy": round(elo_correct / len(predictions), 4),
+        "marketGames": len(market_predictions),
+        "modelMaeOnMarketGames": round(statistics.mean(abs(error) for error in model_market_errors), 3) if model_market_errors else None,
+        "marketSpreadMae": round(statistics.mean(abs(error) for error in market_errors), 3) if market_errors else None,
+        "modelCoverAccuracy": round(ats_correct / len(ats_decisions), 4) if ats_decisions else None,
     }
 
 
@@ -178,6 +196,25 @@ for season in range(FIRST_SEASON, LAST_SEASON + 1):
         continue
 
     games = get("/games", {"year": season, "seasonType": "regular", "classification": "fbs"})
+    lines_games = get_optional("/lines", {"year": season, "seasonType": "regular"})
+    lines_by_game = {}
+    for line_game in lines_games:
+        candidates = line_game.get("lines") or []
+        valid = [
+            item for item in candidates
+            if isinstance(item.get("spread"), (int, float))
+            and not isinstance(item.get("spread"), bool)
+        ]
+        if not valid:
+            continue
+        # Prefer consensus closing spread; otherwise average available providers.
+        consensus = [
+            item for item in valid
+            if "consensus" in str((item.get("provider") or {}).get("name", "")).lower()
+        ]
+        selected = consensus or valid
+        spreads = [float(item["spread"]) for item in selected]
+        lines_by_game[line_game.get("id")] = -statistics.mean(spreads)
     games = [
         game for game in games
         if game.get("completed")
@@ -233,6 +270,7 @@ for season in range(FIRST_SEASON, LAST_SEASON + 1):
                 "predicted": predicted,
                 "baseline": baseline,
                 "eloHomeWinProbability": elo_home_probability,
+                "marketHomeMargin": lines_by_game.get(game.get("id")),
             }
             all_predictions.append(entry)
             season_predictions.append(entry)
@@ -270,6 +308,7 @@ output = {
     "beatsHomeFieldOnlyBaseline": improved,
     "baselineDescription": "Predicts a 2.5-point home win for non-neutral games and 0 points at neutral sites.",
     "eloBaselineDescription": "Simple Elo baseline: all teams start at 1500; 55 Elo points of home advantage; K-factor 20; ratings update only after all games in a week have been predicted.",
+    "spreadBaselineDescription": "CollegeFootballData closing spread lines; market-implied home margin is the negative of the listed home-team spread. Prefer consensus when available, otherwise average providers.",
     "method": "Walk-forward by regular-season week: each prediction uses only completed games from earlier weeks in the same season. Model ratings and Elo predictions are frozen before each target week's results are used.",
     "seasonResults": season_results,
     "notes": [
@@ -277,6 +316,8 @@ output = {
         "Winner accuracy is the share of games where the predicted margin has the same sign as the actual margin.",
         "The home-field-only baseline uses no team-strength information.",
         "The Elo baseline starts every team at 1500, uses a 55-point Elo home advantage and K-factor 20, and updates only after all games in a week have been predicted.",
+        "Closing betting spreads are used only as a benchmark, never as an input to the model's ratings. Market comparison metrics use only games with a recorded spread; model MAE is recalculated on that same subset for a fair comparison.",
+        "Against-the-spread accuracy measures whether the model correctly predicts which side covers the closing spread; pushes are excluded.",
         "Leakage check: target-week scores are used only to grade predictions and update Elo after that week's predictions; ratings for the target week use earlier weeks only.",
         "Historical talent/recruiting inputs are used only as a preseason prior; the script does not use season-final FPI, box-score statistics, or target-week results as model features.",
         "The test covers regular-season FBS-vs-FBS games from historical seasons; it does not include bowl or playoff games."
