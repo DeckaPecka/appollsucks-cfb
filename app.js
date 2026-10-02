@@ -30,6 +30,12 @@ function rankGap(value) {
   return '<span class="move same">' + label + "</span>";
 }
 
+function formatPower(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "—";
+  return (number > 0 ? "+" : "") + number.toFixed(1);
+}
+
 async function loadRankings() {
   const response = await fetch("data/rankings.json", { cache: "no-store" });
   if (!response.ok) throw new Error("Rankings data is unavailable");
@@ -48,7 +54,7 @@ async function loadRankings() {
     document.getElementById("leader-team").textContent = leader.team;
     document.getElementById("leader-record").textContent =
       leader.wins + "–" + leader.losses + " • " + (leader.conference || "Independent");
-    document.getElementById("leader-rating").textContent = Number(leader.rating).toFixed(3);
+    document.getElementById("leader-rating").textContent = formatPower(leader.rating);
   }
 
   const body = document.getElementById("rankings-body");
@@ -62,7 +68,7 @@ async function loadRankings() {
         '<td>' + escapeHtml(row.conference || "—") + '</td>' +
         '<td>' + (row.fpiRank == null ? "—" : "#" + escapeHtml(row.fpiRank)) + '</td>' +
         '<td>' + rankGap(gap) + '</td>' +
-        '<td class="rating">' + Number(row.rating).toFixed(3) + '</td>' +
+        '<td class="rating">' + formatPower(row.rating) + '</td>' +
         '</tr>';
     }).join("");
   }
@@ -70,22 +76,6 @@ async function loadRankings() {
   const snapshotTeams = document.getElementById("snapshot-teams");
   if (snapshotTeams) snapshotTeams.textContent = data.teamCount ?? rows.length;
   const model = data.model || {};
-  const weights = model.weights || {};
-  const weightLabels = {
-    talent: "weight-talent",
-    performance: "weight-performance",
-    schedule: "weight-schedule",
-    recentForm: "weight-recentForm"
-  };
-  Object.entries(weightLabels).forEach(([key, id]) => {
-    const element = document.getElementById(id);
-    if (element && weights[key] != null) element.textContent = Math.round(Number(weights[key]) * 100) + "%";
-  });
-  const weightStage = document.getElementById("weight-stage");
-  if (weightStage && model.seasonWeek != null) {
-    weightStage.textContent = "Current weights for season week " + model.seasonWeek + " (based on the latest completed games).";
-  }
-
   const comparison = data.fpiComparison || {};
   const snapshotFpi = document.getElementById("snapshot-fpi");
   const snapshotGap = document.getElementById("snapshot-gap");
