@@ -36,6 +36,51 @@ function formatPower(value) {
   return (number > 0 ? "+" : "") + number.toFixed(1);
 }
 
+async function loadBacktest() {
+  const status = document.getElementById("backtest-status");
+  const body = document.getElementById("backtest-body");
+  try {
+    const response = await fetch("data/backtest.json", { cache: "no-store" });
+    if (!response.ok) throw new Error("Backtest has not completed yet");
+    const data = await response.json();
+    const overall = data.overall || {};
+    const setText = (id, value) => {
+      const element = document.getElementById(id);
+      if (element) element.textContent = value;
+    };
+    setText("backtest-mae", overall.mae == null ? "—" : Number(overall.mae).toFixed(2) + " pts");
+    setText("backtest-baseline", overall.baselineMae == null ? "—" : Number(overall.baselineMae).toFixed(2) + " pts");
+    setText("backtest-winner", overall.winnerAccuracy == null ? "—" : (Number(overall.winnerAccuracy) * 100).toFixed(1) + "%");
+    if (status) {
+      status.textContent = "Tested " + (data.seasons || []).length + " seasons • " + (overall.games || 0) + " games";
+    }
+    if (body) {
+      body.innerHTML = (data.seasonResults || []).map(row =>
+        "<tr>" +
+        "<td>" + escapeHtml(row.season) + "</td>" +
+        "<td>" + escapeHtml(row.games) + "</td>" +
+        "<td>" + (row.mae == null ? "—" : Number(row.mae).toFixed(2)) + "</td>" +
+        "<td>" + (row.baselineMae == null ? "—" : Number(row.baselineMae).toFixed(2)) + "</td>" +
+        "<td>" + (row.winnerAccuracy == null ? "—" : (Number(row.winnerAccuracy) * 100).toFixed(1) + "%") + "</td>" +
+        "</tr>"
+      ).join("") || '<tr><td colspan="5">No backtest results available.</td></tr>';
+    }
+    const note = document.getElementById("backtest-note");
+    if (note) {
+      const comparison = overall.mae != null && overall.baselineMae != null
+        ? (overall.mae < overall.baselineMae
+          ? " The model's average error is lower than the baseline in this test."
+          : " The model's average error is not lower than the baseline in this test.")
+        : "";
+      note.textContent = (data.method || "Walk-forward historical evaluation.") + comparison +
+        " These are historical regular-season results and do not guarantee future accuracy.";
+    }
+  } catch (error) {
+    if (status) status.textContent = "Results pending";
+    if (body) body.innerHTML = '<tr><td colspan="5">Backtest results will appear after the first successful run.</td></tr>';
+  }
+}
+
 async function loadRankings() {
   const response = await fetch("data/rankings.json", { cache: "no-store" });
   if (!response.ok) throw new Error("Rankings data is unavailable");
@@ -138,6 +183,8 @@ async function loadTeamLogos() {
     console.warn("Team logos could not be loaded:", error);
   }
 }
+
+loadBacktest();
 
 loadRankings()
   .then(loadTeamLogos)
